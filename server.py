@@ -7,6 +7,11 @@ from threading import Lock
 import Queue
 from urllib2 import urlopen
 
+def getExternalIP():  
+    #out = os.system("curl ipecho.net/plain")
+    out = os.popen("curl ipecho.net/plain").read()
+    return out
+
 #define
 print_lock = Lock()
 list_lock = Lock()
@@ -23,15 +28,19 @@ class Game():
         self.players = 1
         self.mapName = mapName
         self.customBool = cBool
+        self.gameLock = Lock()
 
     def isOpen(self):
-        return self.players < 4
+        with self.gameLock:
+            return self.players < 4
         
     def addPlayer(self):
-        self.players += 1
+        with self.gameLock:
+            self.players += 1
     
     def removePlayer(self):
-        self.players -= 1
+        with self.gameLock:
+            self.players -= 1
     
     def getName(self):
         return self.name
@@ -40,19 +49,24 @@ class Game():
         return self.ip
         
     def setIP(self,ip):
-        self.ip = ip
+        with self.gameLock:
+            self.ip = ip
         
     def getMapName(self):
-        return self.mapName
+        with self.gameLock:
+            return self.mapName
     
     def setMapName(self,map):
-        self.mapName = map
+        with self.gameLock:
+            self.mapName = map
         
     def getSize(self):
-        return self.players
+        with self.gameLock:
+            return self.players
         
     def getJSON(self):
-        return {'Game Name':self.name,'Host IP':self.ip,'Number of Players':self.players,'Map Name':self.mapName,'Custom Map':self.customBool}
+        with self.gameLock:
+            return {'Game Name':self.name,'Host IP':self.ip,'Number of Players':self.players,'Map Name':self.mapName,'Custom Map':self.customBool}
     
 
 class MyTCPServer(SocketServer.ThreadingTCPServer):
@@ -118,13 +132,12 @@ class MyTCPServerHandler(SocketServer.BaseRequestHandler):
                             if(action['Join Game'] in gameList):
                                 g = gameList[action['Join Game']]
                         if(g != 0):
-                            #TODO: Error with Locks here..
                             print "Joining game: "+action['Join Game']
                             
                             g.addPlayer()
                             while 1:
                                 try:
-                                    #should update with any thing you want
+                                    #Updates with Game data
                                     self.request.sendall(json.dumps({'Update':g.getJSON()}))
                                     up = json.loads(self.request.recv(1024).strip())
                                     
@@ -146,6 +159,7 @@ class MyTCPServerHandler(SocketServer.BaseRequestHandler):
 try:
     g = Game("Minty's Game",'127.0.0.1',"Mintybacon","Map1",False)
     gameList[g.getName()] = g
+    print "Started Server on:",getExternalIP()
     server = MyTCPServer(('0.0.0.0', 13375), MyTCPServerHandler)
     server.serve_forever()
     
