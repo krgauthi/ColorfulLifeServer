@@ -157,8 +157,9 @@ class MyTCPServerHandler(SocketServer.BaseRequestHandler):
 
 #StartUp
 try:
-    g = Game("Minty's Game",'127.0.0.1',"Mintybacon","Map1",False)
-    gameList[g.getName()] = g
+    #Test Game
+    #g = Game("Minty's Game",'127.0.0.1',"Mintybacon","Map1",False)
+    #gameList[g.getName()] = g
     print "Started Server on:",getExternalIP()
     server = MyTCPServer(('0.0.0.0', 13375), MyTCPServerHandler)
     server.serve_forever()
