@@ -34,9 +34,13 @@ var = raw_input("\n\nType Join followed by the name of the game you want to join
 if(var.lower().split(' ', 1)[0] == "new"):
     print "Creating a new game.."
     name = raw_input("\nName for your new game\n")
+    map = raw_input("\nWhat Map do you want to play?\n")
+    cus = raw_input("\nis this a custom map? True/False\n")
     out = {}
     out['New Game'] = getExternalIP()
     out['New Name'] = name
+    out['Map Name'] = map
+    out['Custom Bool'] = cus
     s.send(json.dumps(out))
     
     while 1:

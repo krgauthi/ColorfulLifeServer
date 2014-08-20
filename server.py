@@ -15,24 +15,23 @@ list_lock = Lock()
 gameList = {};
 
 #TODO: Implement a Lock in the game for adding and removing players
-#TODO: Add Map name String and Custom Map Bool
 class Game():
     
-    def __init__(self,gameName, ipAdd, hostName):
+    def __init__(self,gameName, ipAdd, hostName,mapName,cBool):
         self.name = gameName
         self.ip = ipAdd
         self.players = 1
+        self.mapName = mapName
+        self.customBool = cBool
 
     def isOpen(self):
         return self.players < 4
         
     def addPlayer(self):
         self.players += 1
-        return
     
     def removePlayer(self):
         self.players -= 1
-        return
     
     def getName(self):
         return self.name
@@ -40,8 +39,20 @@ class Game():
     def getIP(self):
         return self.ip
         
+    def setIP(self,ip):
+        self.ip = ip
+        
+    def getMapName(self):
+        return self.mapName
+    
+    def setMapName(self,map):
+        self.mapName = map
+        
     def getSize(self):
         return self.players
+        
+    def getJSON(self):
+        return {'Game Name':self.name,'Host IP':self.ip,'Number of Players':self.players,'Map Name':self.mapName,'Custom Map':self.customBool}
     
 
 class MyTCPServer(SocketServer.ThreadingTCPServer):
@@ -68,11 +79,10 @@ class MyTCPServerHandler(SocketServer.BaseRequestHandler):
                         with list_lock:
                             for n,g in gameList.iteritems():
                                 if g.isOpen():
-                                    #TODO: Send back Game as a JSON with all game details
-                                    outgoingJson[n] = g.getSize()
+                                    outgoingJson[n] = g.getJSON()
                         self.request.sendall(json.dumps(outgoingJson))
                         
-                    #Connected now Join Game or Create Game    
+                    #Connected now Join Game or Create Game
                     action = json.loads(self.request.recv(1024).strip())
                     if('New Game' in action):
                         
@@ -86,12 +96,12 @@ class MyTCPServerHandler(SocketServer.BaseRequestHandler):
                                 action['New Name'] = newName['New Name']
                             
                             print "Creating new game: "+action['New Name']+" on IP: "+action['New Game']
-                            g = Game(action['New Name'],action['New Game'],value)
+                            g = Game(action['New Name'],action['New Game'],value,action['Map Name'],action['Custom Bool'])
                             gameList[g.getName()] = g
                         while 1:
                             try:
-                                #should update with any thing you want i.e. game capacity
-                                self.request.sendall(json.dumps({'Update':''}))
+                                #update with Game Data
+                                self.request.sendall(json.dumps({'Update':g.getJSON()}))
                                 up = json.loads(self.request.recv(1024).strip())
                             except Exception, b:
                                     with print_lock:
@@ -115,8 +125,7 @@ class MyTCPServerHandler(SocketServer.BaseRequestHandler):
                             while 1:
                                 try:
                                     #should update with any thing you want
-                                    #TODO: Send more than just IP
-                                    self.request.sendall(json.dumps({'Update':g.getIP()}))
+                                    self.request.sendall(json.dumps({'Update':g.getJSON()}))
                                     up = json.loads(self.request.recv(1024).strip())
                                     
                                 except Exception, b:
@@ -133,11 +142,9 @@ class MyTCPServerHandler(SocketServer.BaseRequestHandler):
             print "Exception while receiving message: ", e
 
 
-
-
 #StartUp
 try:
-    g = Game("Minty's Game",'127.0.0.1',"Mintybacon")
+    g = Game("Minty's Game",'127.0.0.1',"Mintybacon","Map1",False)
     gameList[g.getName()] = g
     server = MyTCPServer(('0.0.0.0', 13375), MyTCPServerHandler)
     server.serve_forever()
